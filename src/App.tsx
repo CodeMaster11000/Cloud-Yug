@@ -119,10 +119,10 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 flex flex-col font-sans transition-colors">
+    <div className="min-h-screen w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 flex flex-col font-sans transition-colors">
       <Header activeTab={activeTab} setActiveTab={setActiveTab} stats={stats} isExtensionPopup={isExtensionPopup} openFullDashboard={openFullDashboard} />
 
-      <main className="flex-1 w-full mx-auto p-6 md:p-10" style={{maxWidth: isExtensionPopup ? '100%' : '90rem'}}>
+      <main className="flex-1 w-full p-6 md:p-10" style={{maxWidth: isExtensionPopup ? '100%' : '100%'}}>
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}

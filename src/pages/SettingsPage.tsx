@@ -29,14 +29,26 @@ const Toggle = ({ checked, onChange }: { checked: boolean, onChange: (val: boole
 );
 
 export const SettingsPage = ({ settings, onSave }: { settings: Settings | null, onSave: (s: Settings) => void }) => {
-    const [localSettings, setLocalSettings] = useState<Settings | null>(settings);
+    // Initialize with default settings if null
+    const defaultSettings: Settings = {
+        daily_focus_target: 4,
+        max_tab_switches: 15,
+        digital_sunset: '22:00',
+        alert_sensitivity: 'Balanced',
+        full_name: 'User',
+        email: 'user@example.com'
+    };
+    
+    const [localSettings, setLocalSettings] = useState<Settings>(settings || defaultSettings);
     const [darkMode, setDarkMode] = useState(() => {
         const saved = localStorage.getItem('darkMode');
         return saved ? JSON.parse(saved) : false;
     });
 
     useEffect(() => {
-        setLocalSettings(settings);
+        if (settings) {
+            setLocalSettings(settings);
+        }
     }, [settings]);
 
     const toggleDarkMode = (newValue: boolean) => {
@@ -71,14 +83,12 @@ export const SettingsPage = ({ settings, onSave }: { settings: Settings | null, 
         return () => window.removeEventListener('darkModeChange', handleDarkModeChange);
     }, []);
 
-    if (!localSettings) return null;
-
     const update = (key: keyof Settings, val: any) => {
         setLocalSettings({ ...localSettings, [key]: val });
     };
 
     return (
-        <div className="flex flex-col lg:flex-row gap-8">
+        <div className="w-full max-w-[90rem] mx-auto flex flex-col lg:flex-row gap-8">
             <aside className="w-full lg:w-64 shrink-0">
                 <div className="flex flex-col gap-1 sticky top-24">
                     <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 px-4 mb-3">Preferences</h3>

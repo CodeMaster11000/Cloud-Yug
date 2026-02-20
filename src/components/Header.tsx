@@ -87,7 +87,7 @@ export const Header = ({
                     </div>
                 </div>
 
-                <nav className="hidden md:flex items-center gap-2 absolute left-1/2 -translate-x-1/2">
+                <nav className="flex items-center gap-1 sm:gap-2">
                     <NavItem label="Dashboard" active={activeTab === 'Dashboard'} onClick={() => setActiveTab('Dashboard')} />
                     <NavItem label="History" active={activeTab === 'History'} onClick={() => setActiveTab('History')} />
                     <NavItem label="Insights" active={activeTab === 'Insights'} onClick={() => setActiveTab('Insights')} />
@@ -95,7 +95,7 @@ export const Header = ({
                     <NavItem label="Goals" active={activeTab === 'Goals'} onClick={() => setActiveTab('Goals')} />
                 </nav>
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 sm:gap-4">
                     {isExtensionPopup && openFullDashboard && (
                         <button 
                             onClick={openFullDashboard}

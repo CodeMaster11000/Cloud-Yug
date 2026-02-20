@@ -3,9 +3,18 @@ import { Target, TrendingUp, ArrowRight, Clock, LayoutDashboard, Moon, Bell, Che
 import { Settings } from '../types';
 
 export const GoalsPage = ({ settings }: { settings: Settings | null }) => {
-    if (!settings) return null;
+    // Use default values if settings are null
+    const displaySettings = settings || {
+        daily_focus_target: 4,
+        max_tab_switches: 15,
+        digital_sunset: '22:00',
+        alert_sensitivity: 'Balanced',
+        full_name: 'User',
+        email: 'user@example.com'
+    };
+
     return (
-        <div className="space-y-8">
+        <div className="w-full max-w-[90rem] mx-auto space-y-8">
             <div className="bg-white dark:bg-slate-900 rounded-3xl p-10 border border-slate-100 dark:border-slate-800 shadow-sm relative overflow-hidden group flex flex-col md:flex-row md:items-center justify-between gap-10 transition-colors">
                 <div className="absolute right-[-20%] top-[-20%] w-[60%] h-[140%] opacity-[0.03] dark:opacity-[0.05] pointer-events-none transition-transform group-hover:scale-105 duration-700">
                     <TrendingUp className="text-green-500" fill="currentColor" size={400} />
@@ -51,7 +60,7 @@ export const GoalsPage = ({ settings }: { settings: Settings | null }) => {
                                 </div>
                                 <div className="mt-8 mb-2">
                                     <div className="flex justify-between items-end mb-3">
-                                        <span className="text-3xl font-black text-slate-900 dark:text-slate-50">{settings.daily_focus_target}.0 <span className="text-xs font-semibold text-slate-400">hrs</span></span>
+                                        <span className="text-3xl font-black text-slate-900 dark:text-slate-50">{displaySettings.daily_focus_target}.0 <span className="text-xs font-semibold text-slate-400">hrs</span></span>
                                         <span className="text-[10px] font-bold text-green-500 uppercase tracking-widest">+20% vs avg</span>
                                     </div>
                                     <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full">
@@ -72,7 +81,7 @@ export const GoalsPage = ({ settings }: { settings: Settings | null }) => {
                                 </div>
                                 <div className="mt-8 mb-2">
                                     <div className="flex justify-between items-end mb-3">
-                                        <span className="text-3xl font-black text-slate-900 dark:text-slate-50">{settings.max_tab_switches} <span className="text-xs font-semibold text-slate-400">switches</span></span>
+                                        <span className="text-3xl font-black text-slate-900 dark:text-slate-50">{displaySettings.max_tab_switches} <span className="text-xs font-semibold text-slate-400">switches</span></span>
                                         <span className="text-[10px] font-bold text-green-500 uppercase tracking-widest">Low friction</span>
                                     </div>
                                     <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full">
@@ -93,7 +102,7 @@ export const GoalsPage = ({ settings }: { settings: Settings | null }) => {
                                 </div>
                                 <div className="flex items-center gap-4 mt-8">
                                     <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-xl font-bold text-lg px-4 py-3 flex-1 flex justify-between items-center shadow-sm transition-colors">
-                                        {settings.digital_sunset}
+                                        {displaySettings.digital_sunset}
                                         <ArrowRight size={16} className="text-slate-300 dark:text-slate-600" />
                                     </div>
                                     <button className="w-12 h-12 flex items-center justify-center bg-green-500 text-white rounded-xl shadow-md shadow-green-500/20 cursor-pointer">
@@ -112,7 +121,7 @@ export const GoalsPage = ({ settings }: { settings: Settings | null }) => {
                                 </div>
                                 <div className="flex gap-2 mt-8">
                                     {['Quiet', 'Balanced', 'Active'].map((s, i) => (
-                                        <button key={s} className={`flex-1 py-3 text-[10px] font-black rounded-xl border transition-colors uppercase tracking-widest cursor-pointer ${(settings.alert_sensitivity === s || (s === 'Balanced' && !settings.alert_sensitivity))
+                                        <button key={s} className={`flex-1 py-3 text-[10px] font-black rounded-xl border transition-colors uppercase tracking-widest cursor-pointer ${(displaySettings.alert_sensitivity === s || (s === 'Balanced' && !displaySettings.alert_sensitivity))
                                                 ? 'bg-green-500 text-white border-green-500 shadow-md shadow-green-500/20'
                                                 : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-sm'
                                             }`}>
