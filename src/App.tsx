@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { storageService, backgroundService } from './storage.js';
 import { 
   LayoutDashboard, 
   History, 
@@ -900,16 +901,18 @@ export default function App() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [sRes, aRes, eRes, stRes] = await Promise.all([
-          fetch('/api/settings'),
-          fetch('/api/activities'),
-          fetch('/api/events'),
-          fetch('/api/stats')
+        // Fetch data from chrome.storage instead of API
+        const [settingsData, activitiesData, eventsData, statsData] = await Promise.all([
+          storageService.getSettings(),
+          storageService.getActivities(),
+          storageService.getEvents(),
+          storageService.getStats()
         ]);
-        setSettings(await sRes.json());
-        setActivities(await aRes.json());
-        setEvents(await eRes.json());
-        setStats(await stRes.json());
+        
+        if (settingsData) setSettings(settingsData);
+        setActivities(activitiesData);
+        setEvents(eventsData);
+        if (statsData) setStats(statsData);
       } catch (err) {
         console.error("Failed to fetch data", err);
       } finally {
@@ -917,15 +920,27 @@ export default function App() {
       }
     };
     fetchData();
+    
+    // Listen for storage changes
+    storageService.addChangeListener((changes) => {
+      if (changes.settings) {
+        setSettings(changes.settings.newValue);
+      }
+      if (changes.activities) {
+        setActivities(changes.activities.newValue || []);
+      }
+      if (changes.events) {
+        setEvents(changes.events.newValue || []);
+      }
+      if (changes.stats) {
+        setStats(changes.stats.newValue);
+      }
+    });
   }, []);
 
   const handleSaveSettings = async (newSettings: Settings) => {
     try {
-      await fetch('/api/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newSettings)
-      });
+      await storageService.updateSettings(newSettings);
       setSettings(newSettings);
       alert("Settings saved successfully!");
     } catch (err) {
