@@ -91,6 +91,7 @@ export const Header = ({
                     <NavItem label="Dashboard" active={activeTab === 'Dashboard'} onClick={() => setActiveTab('Dashboard')} />
                     <NavItem label="History" active={activeTab === 'History'} onClick={() => setActiveTab('History')} />
                     <NavItem label="Insights" active={activeTab === 'Insights'} onClick={() => setActiveTab('Insights')} />
+                    <NavItem label="Fatigue CV" active={activeTab === 'FatigueTracker'} onClick={() => setActiveTab('FatigueTracker')} />
                     <NavItem label="Goals" active={activeTab === 'Goals'} onClick={() => setActiveTab('Goals')} />
                 </nav>
 
