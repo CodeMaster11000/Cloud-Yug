@@ -1,9 +1,57 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { AlertTriangle, Clock, Moon, Zap, Lightbulb } from 'lucide-react';
+import { AlertTriangle, Clock, Moon, Zap, Lightbulb, Brain, Eye, Gauge, TrendingUp as TrendingUpIcon, Activity, CheckCircle2 } from 'lucide-react';
 import { Stats } from '../types';
+import { PhysiologicalMetrics } from '../hooks/useFatigueDetection';
+import { calculateExhaustionIndex, predictFatigueTrajectory, detectExhaustionPattern } from '../lib/exhaustionEngine';
 
-export const InsightsPage = ({ stats }: { stats: Stats | null }) => {
+interface InsightsPageProps {
+    stats: Stats | null;
+    fatigueMetrics: PhysiologicalMetrics;
+    isTracking: boolean;
+}
+
+export const InsightsPage = ({ stats, fatigueMetrics, isTracking }: InsightsPageProps) => {
+    const [exhaustionData, setExhaustionData] = useState<any>(null);
+    const [pattern, setPattern] = useState<any>(null);
+    
+    useEffect(() => {
+        if (isTracking) {
+            // Use real behavioral data from extension if available
+            const behavioralMetrics = stats.factors ? {
+                tabSwitchScore: stats.factors.tabSwitching?.penalty || 0,
+                typingFatigueScore: stats.factors.typingFatigue?.penalty || 0,
+                clickAccuracyScore: stats.factors.clickAccuracy?.penalty || 0,
+                mouseErraticScore: stats.factors.erraticMouse?.penalty || 0,
+                scrollAnxietyScore: stats.factors.anxiousScroll?.penalty || 0,
+                timeOfDayScore: stats.factors.lateNight?.penalty || 0,
+                idleTimeScore: stats.factors.idle?.penalty || 0
+            } : {
+                // Fallback to mock data if extension data not available
+                tabSwitchScore: 30,
+                typingFatigueScore: 20,
+                clickAccuracyScore: 85,
+                mouseErraticScore: 25,
+                scrollAnxietyScore: 30,
+                timeOfDayScore: 10,
+                idleTimeScore: 15
+            };
+            
+            const physiologicalMetrics = {
+                eyeFatigueScore: fatigueMetrics.earScore,
+                blinkRateScore: fatigueMetrics.blinkRateScore,
+                earScore: fatigueMetrics.earScore,
+                stressLevel: (fatigueMetrics.stressLevel / 15) * 100
+            };
+            
+            const result = calculateExhaustionIndex(behavioralMetrics, physiologicalMetrics);
+            setExhaustionData(result);
+            
+            const detectedPattern = detectExhaustionPattern(result.factors);
+            setPattern(detectedPattern);
+        }
+    }, [isTracking, fatigueMetrics, stats.factors]);
+    
     if (!stats) return null;
     return (
         <div className="space-y-8">
@@ -78,6 +126,119 @@ export const InsightsPage = ({ stats }: { stats: Stats | null }) => {
                     </p>
                 </div>
             </div>
+
+            {/* Unified Exhaustion Analysis */}
+            {isTracking && exhaustionData && (
+                <div className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-950/30 dark:to-indigo-950/30 rounded-3xl p-10 border border-purple-100 dark:border-purple-800 shadow-sm transition-colors">
+                    <div className="flex items-center gap-3 mb-8">
+                        <div className="w-12 h-12 rounded-full bg-purple-500 text-white flex items-center justify-center">
+                            <Brain size={24} />
+                        </div>
+                        <div>
+                            <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-50">Unified Exhaustion Analysis</h3>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">AI-powered pattern detection combining behavioral + physiological signals</p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                            <div className="text-center">
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Exhaustion Score</p>
+                                <div className={`text-6xl font-black mb-2 ${
+                                    exhaustionData.totalScore > 70 ? 'text-rose-500' :
+                                    exhaustionData.totalScore > 50 ? 'text-amber-500' :
+                                    'text-emerald-500'
+                                }`}>
+                                    {Math.round(exhaustionData.totalScore)}
+                                </div>
+                                <span className={`inline-block px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest ${
+                                    exhaustionData.level === 'critical' ? 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400' :
+                                    exhaustionData.level === 'severe' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400' :
+                                    exhaustionData.level === 'moderate' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400' :
+                                    exhaustionData.level === 'mild' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400' :
+                                    'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
+                                }`}>
+                                    {exhaustionData.level}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Exhaustion Pattern</p>
+                            <div className="flex items-center gap-3 mb-4">
+                                {pattern?.pattern === 'cognitive' && <Brain className="text-purple-500" size={32} />}
+                                {pattern?.pattern === 'physical' && <Gauge className="text-orange-500" size={32} />}
+                                {pattern?.pattern === 'visual' && <Eye className="text-cyan-500" size={32} />}
+                                {pattern?.pattern === 'mixed' && <Activity className="text-rose-500" size={32} />}
+                                {pattern?.pattern === 'none' && <CheckCircle2 className="text-emerald-500" size={32} />}
+                                <div>
+                                    <p className="font-bold text-lg text-slate-900 dark:text-slate-50 capitalize">{pattern?.pattern}</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">{Math.round((pattern?.confidence || 0) * 100)}% confidence</p>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                {pattern?.causes.map((cause: string, i: number) => (
+                                    <div key={i} className="text-xs text-slate-600 dark:text-slate-400 flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                                        {cause}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Recommendation</p>
+                            <div className="flex items-start gap-3">
+                                <Lightbulb className="text-amber-500 flex-shrink-0 mt-1" size={20} fill="currentColor" />
+                                <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                                    {exhaustionData.recommendation}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Top Contributing Factors</p>
+                        <div className="space-y-3">
+                            {exhaustionData.factors.slice(0, 5).map((factor: any, i: number) => (
+                                <div key={i} className="flex items-center gap-4">
+                                    <span className="text-sm text-slate-600 dark:text-slate-400 w-48 truncate">{factor.metric}</span>
+                                    <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                        <div 
+                                            className={`h-full rounded-full ${
+                                                factor.severity === 'high' ? 'bg-rose-500' :
+                                                factor.severity === 'medium' ? 'bg-amber-500' :
+                                                'bg-emerald-500'
+                                            }`}
+                                            style={{ width: `${factor.contribution}%` }}
+                                        />
+                                    </div>
+                                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 w-16 text-right">
+                                        {Math.round(factor.contribution)}%
+                                    </span>
+                                    <span className={`text-[10px] font-bold uppercase tracking-wider w-16 text-right ${
+                                        factor.severity === 'high' ? 'text-rose-500' :
+                                        factor.severity === 'medium' ? 'text-amber-500' :
+                                        'text-emerald-500'
+                                    }`}>
+                                        {factor.severity}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {!isTracking && (
+                <div className="bg-slate-100 dark:bg-slate-900 rounded-3xl p-10 border border-slate-200 dark:border-slate-800 text-center transition-colors">
+                    <Activity className="mx-auto mb-4 text-slate-400" size={48} />
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-slate-50 mb-2">Start CV Tracking for Deep Insights</h3>
+                    <p className="text-slate-600 dark:text-slate-400 text-sm max-w-md mx-auto">
+                        Enable computer vision tracking on the Dashboard to see comprehensive exhaustion analysis, pattern detection, and personalized recommendations.
+                    </p>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-100 dark:border-slate-800 shadow-sm flex items-start gap-6 transition-colors">

@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { storageService } from './storage.js';
 import { motion, AnimatePresence } from 'motion/react';
+import { fetchExtensionBehavioralData, subscribeToExtensionUpdates } from './lib/extensionBridge';
 
 // Import types
 import { Settings, Activity, EventLog, Stats } from './types';
@@ -14,6 +15,7 @@ import { Settings, Activity, EventLog, Stats } from './types';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import FatigueTracker from './components/FatigueTracker';
+import { useFatigueDetection } from './hooks/useFatigueDetection';
 
 // Import pages
 import { Dashboard } from './pages/Dashboard';
@@ -34,6 +36,9 @@ export default function App() {
   const [events, setEvents] = useState<EventLog[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // Initialize fatigue detection
+  const fatigueDetection = useFatigueDetection();
 
   // Initialize dark mode from localStorage
   useEffect(() => {
@@ -44,7 +49,18 @@ export default function App() {
   }, []);
 
   // Check if we're in extension popup context (small width)
-  const isExtensionPopup = typeof window !== 'undefined' && window.innerWidth <= 500;
+  const [isExtensionPopup, setIsExtensionPopup] = useState(false);
+  
+  useEffect(() => {
+    const checkExtensionContext = () => {
+      // Check if window width is <= 600px (our extension breakpoint)
+      setIsExtensionPopup(window.innerWidth <= 600);
+    };
+    
+    checkExtensionContext();
+    window.addEventListener('resize', checkExtensionContext);
+    return () => window.removeEventListener('resize', checkExtensionContext);
+  }, []);
   
   // Function to open full dashboard
   const openFullDashboard = () => {
@@ -68,10 +84,43 @@ export default function App() {
           storageService.getStats()
         ]);
         
-        if (settingsData) setSettings(settingsData);
+        // Initialize with defaults if no settings exist
+        if (settingsData) {
+          setSettings(settingsData);
+        } else {
+          // Create default settings
+          const defaultSettings: Settings = {
+            daily_focus_target: 4,
+            max_tab_switches: 15,
+            digital_sunset: '22:00',
+            alert_sensitivity: 'Balanced',
+            full_name: 'User',
+            email: 'user@example.com',
+            role: 'Professional',
+            auto_trigger_breathing: 0,
+            block_notifications: 0,
+            smart_breaks: 0,
+            burnout_alerts_level: 50,
+            micro_break_interval: '25m'
+          };
+          await storageService.updateSettings(defaultSettings);
+          setSettings(defaultSettings);
+        }
+        
         setActivities(activitiesData);
         setEvents(eventsData);
-        if (statsData) setStats(statsData);
+        
+        // Merge stored stats with real-time behavioral data from extension
+        const behavioralData = await fetchExtensionBehavioralData();
+        const mergedStats = {
+          ...(statsData || {}),
+          ...(behavioralData || {})
+        } as Stats;
+        
+        // Ensure we have a valid stats object
+        if (mergedStats.focus_score !== undefined) {
+          setStats(mergedStats);
+        }
       } catch (err) {
         console.error("Failed to fetch data", err);
       } finally {
@@ -79,6 +128,14 @@ export default function App() {
       }
     };
     fetchData();
+    
+    // Subscribe to real-time extension updates
+    const unsubscribe = subscribeToExtensionUpdates((behavioralData) => {
+      setStats(prevStats => ({
+        ...(prevStats || {}),
+        ...behavioralData
+      } as Stats));
+    });
     
     // Listen for storage changes
     storageService.addChangeListener((changes) => {
@@ -92,15 +149,27 @@ export default function App() {
         setEvents(changes.events.newValue || []);
       }
       if (changes.stats) {
-        setStats(changes.stats.newValue);
+        setStats(prevStats => ({
+          ...(prevStats || {}),
+          ...(changes.stats.newValue || {})
+        } as Stats));
       }
     });
+    
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   const handleSaveSettings = async (newSettings: Settings) => {
     try {
-      await storageService.updateSettings(newSettings);
-      setSettings(newSettings);
+      // Merge with existing settings to ensure all fields are preserved
+      const mergedSettings = {
+        ...settings,
+        ...newSettings
+      };
+      await storageService.updateSettings(mergedSettings);
+      setSettings(mergedSettings);
       alert("Settings saved successfully!");
     } catch (err) {
       console.error("Failed to save settings", err);
@@ -122,7 +191,7 @@ export default function App() {
     <div className="min-h-screen w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 flex flex-col font-sans transition-colors">
       <Header activeTab={activeTab} setActiveTab={setActiveTab} stats={stats} isExtensionPopup={isExtensionPopup} openFullDashboard={openFullDashboard} />
 
-      <main className="flex-1 w-full p-6 md:p-10" style={{maxWidth: isExtensionPopup ? '100%' : '100%'}}>
+      <main className="flex-1 w-full p-3 sm:p-6 md:p-10" style={{maxWidth: isExtensionPopup ? '100%' : '100%', paddingBottom: isExtensionPopup ? '80px' : undefined}}>
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -131,17 +200,43 @@ export default function App() {
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
           >
-            {activeTab === 'Dashboard' && <Dashboard stats={stats} />}
-            {activeTab === 'History' && <HistoryPage activities={activities} events={events} stats={stats} />}
+            {activeTab === 'Dashboard' && <Dashboard stats={stats} fatigueMetrics={fatigueDetection.metrics} isTracking={fatigueDetection.isTracking} startTracking={fatigueDetection.startTracking} stopTracking={fatigueDetection.stopTracking} />}
+            {activeTab === 'History' && <HistoryPage activities={activities} events={events} stats={stats} fatigueMetrics={fatigueDetection.metrics} />}
             {activeTab === 'Settings' && <SettingsPage settings={settings} onSave={handleSaveSettings} />}
-            {activeTab === 'Insights' && <InsightsPage stats={stats} />}
+            {activeTab === 'Insights' && <InsightsPage stats={stats} fatigueMetrics={fatigueDetection.metrics} isTracking={fatigueDetection.isTracking} />}
             {activeTab === 'FatigueTracker' && <FatigueTracker />}
-            {activeTab === 'Goals' && <GoalsPage settings={settings} />}
+            {activeTab === 'Goals' && <GoalsPage settings={settings} fatigueMetrics={fatigueDetection.metrics} isTracking={fatigueDetection.isTracking} stats={stats} />}
           </motion.div>
         </AnimatePresence>
       </main>
 
-      <Footer />
+      {/* Extension Popup Bottom Navigation */}
+      {isExtensionPopup && (
+        <nav className="sticky bottom-0 w-full bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-2 py-2 flex justify-around items-center shadow-lg">
+          {[
+            { tab: 'Dashboard', icon: '📊', label: 'Home' },
+            { tab: 'History', icon: '📜', label: 'History' },
+            { tab: 'Insights', icon: '📈', label: 'Stats' },
+            { tab: 'Goals', icon: '🎯', label: 'Goals' },
+            { tab: 'Settings', icon: '⚙️', label: 'Settings' }
+          ].map(({ tab, icon, label }) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`flex flex-col items-center gap-1 px-2 py-1.5 rounded-lg transition-all ${
+                activeTab === tab 
+                  ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' 
+                  : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              <span className="text-lg">{icon}</span>
+              <span className="text-[10px] font-bold">{label}</span>
+            </button>
+          ))}
+        </nav>
+      )}
+
+      {!isExtensionPopup && <Footer />}
     </div>
   );
 }

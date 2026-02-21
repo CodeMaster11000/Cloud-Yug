@@ -2,12 +2,43 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 
 import CVWorker from '../workers/cv-worker?worker';
 
+export interface PhysiologicalMetrics {
+  eyeFatigue: boolean;
+  stressLevel: number;
+  avgEAR: string;
+  earScore: number;
+  blinksPerMin: number;
+  blinkRateScore: number;
+  blinkFatigued: boolean;
+  isSlumping: boolean;
+  isForwardHead: boolean;
+  headTilt: number;
+  postureScore: number;
+  physiologicalScore: number;
+}
+
 export function useFatigueDetection() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isTracking, setIsTracking] = useState(false);
   const [stressLevel, setStressLevel] = useState(0);
   const [eyeFatigue, setEyeFatigue] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  
+  // Enhanced physiological metrics
+  const [metrics, setMetrics] = useState<PhysiologicalMetrics>({
+    eyeFatigue: false,
+    stressLevel: 0,
+    avgEAR: '0',
+    earScore: 0,
+    blinksPerMin: 0,
+    blinkRateScore: 0,
+    blinkFatigued: false,
+    isSlumping: false,
+    isForwardHead: false,
+    headTilt: 0,
+    postureScore: 0,
+    physiologicalScore: 0
+  });
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const workerRef = useRef<Worker | null>(null);
@@ -22,8 +53,25 @@ export function useFatigueDetection() {
       } else if (type === 'INIT_ERROR') {
         console.error('Worker init error:', error);
       } else if (type === 'RESULTS') {
+        // Update legacy individual states
         setStressLevel(payload.stressLevel || 0);
         setEyeFatigue(payload.eyeFatigue);
+        
+        // Update comprehensive metrics object
+        setMetrics({
+          eyeFatigue: payload.eyeFatigue,
+          stressLevel: payload.stressLevel || 0,
+          avgEAR: payload.avgEAR || '0',
+          earScore: payload.earScore || 0,
+          blinksPerMin: payload.blinksPerMin || 0,
+          blinkRateScore: payload.blinkRateScore || 0,
+          blinkFatigued: payload.blinkFatigued || false,
+          isSlumping: payload.isSlumping || false,
+          isForwardHead: payload.isForwardHead || false,
+          headTilt: payload.headTilt || 0,
+          postureScore: payload.postureScore || 0,
+          physiologicalScore: payload.physiologicalScore || 0
+        });
       }
     };
 
@@ -107,6 +155,20 @@ export function useFatigueDetection() {
     setIsTracking(false);
     setStressLevel(0);
     setEyeFatigue(false);
+    setMetrics({
+      eyeFatigue: false,
+      stressLevel: 0,
+      avgEAR: '0',
+      earScore: 0,
+      blinksPerMin: 0,
+      blinkRateScore: 0,
+      blinkFatigued: false,
+      isSlumping: false,
+      isForwardHead: false,
+      headTilt: 0,
+      postureScore: 0,
+      physiologicalScore: 0
+    });
   };
 
   return {
@@ -115,6 +177,7 @@ export function useFatigueDetection() {
     stressLevel,
     eyeFatigue,
     cameraError,
+    metrics, // Comprehensive metrics object
     startTracking,
     stopTracking
   };

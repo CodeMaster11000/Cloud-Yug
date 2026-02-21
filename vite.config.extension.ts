@@ -47,6 +47,24 @@ export default defineConfig(({mode}) => {
               console.log(`✓ Copied ${file}`);
             }
           });
+
+          // Copy lib directory if it exists in public
+          const libSrc = path.join(publicDir, 'lib');
+          const libDest = path.join(distDir, 'lib');
+          if (fs.existsSync(libSrc)) {
+            if (!fs.existsSync(libDest)) {
+              fs.mkdirSync(libDest, { recursive: true });
+            }
+            const libFiles = fs.readdirSync(libSrc);
+            libFiles.forEach(file => {
+              const srcFile = path.join(libSrc, file);
+              const destFile = path.join(libDest, file);
+              if (fs.statSync(srcFile).isFile()) {
+                fs.copyFileSync(srcFile, destFile);
+                console.log(`✓ Copied lib/${file}`);
+              }
+            });
+          }
           
           console.log(`✅ Extension build complete! Files are in ${distDir}`);
         }

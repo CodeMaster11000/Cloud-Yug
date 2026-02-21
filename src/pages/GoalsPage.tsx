@@ -1,8 +1,16 @@
 import React from 'react';
-import { Target, TrendingUp, ArrowRight, Clock, LayoutDashboard, Moon, Bell, CheckCircle2, Info, Lightbulb, AlertTriangle } from 'lucide-react';
-import { Settings } from '../types';
+import { Target, TrendingUp, ArrowRight, Clock, LayoutDashboard, Moon, Bell, CheckCircle2, Info, Lightbulb, AlertTriangle, Eye, Gauge, Activity, MousePointer, ScrollText } from 'lucide-react';
+import { Settings, Stats } from '../types';
+import { PhysiologicalMetrics } from '../hooks/useFatigueDetection';
 
-export const GoalsPage = ({ settings }: { settings: Settings | null }) => {
+interface GoalsPageProps {
+    settings: Settings | null;
+    fatigueMetrics: PhysiologicalMetrics;
+    isTracking: boolean;
+    stats?: Stats | null;
+}
+
+export const GoalsPage = ({ settings, fatigueMetrics, isTracking, stats }: GoalsPageProps) => {
     // Use default values if settings are null
     const displaySettings = settings || {
         daily_focus_target: 4,
@@ -12,6 +20,11 @@ export const GoalsPage = ({ settings }: { settings: Settings | null }) => {
         full_name: 'User',
         email: 'user@example.com'
     };
+    
+    // Calculate health goals progress
+    const blinkHealthPercent = isTracking ? Math.max(0, 100 - fatigueMetrics.blinkRateScore) : 0;
+    const postureHealthPercent = isTracking ? Math.max(0, 100 - fatigueMetrics.postureScore) : 0;
+    const eyeHealthPercent = isTracking ? Math.max(0, 100 - fatigueMetrics.earScore) : 0;
 
     return (
         <div className="w-full max-w-[90rem] mx-auto space-y-8">
@@ -153,6 +166,369 @@ export const GoalsPage = ({ settings }: { settings: Settings | null }) => {
                                 ))}
                             </div>
                         </div>
+                    </section>
+
+                    {/* Physiological Health Goals */}
+                    <section className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm transition-colors">
+                        <div className="flex items-center justify-between mb-8">
+                            <h3 className="text-xl font-bold flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500 dark:text-indigo-400 flex items-center justify-center">
+                                    <Activity size={20} />
+                                </div>
+                                Physiological Health Goals
+                            </h3>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-full border border-slate-100 dark:border-slate-700 pb-1 transition-colors">
+                                {isTracking ? 'Live Tracking' : 'Not Tracking'}
+                            </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 hover:border-slate-200 dark:hover:border-slate-600 transition-colors shadow-sm">
+                                <div className="flex items-start justify-between mb-6">
+                                    <div>
+                                        <p className="font-bold text-slate-900 dark:text-slate-100 leading-tight mb-1 tracking-tight">Blink Health</p>
+                                        <p className="text-[11px] text-slate-500 dark:text-slate-400">Optimal: 15-20 blinks/min</p>
+                                    </div>
+                                    <Eye className="text-cyan-500" size={18} />
+                                </div>
+                                <div className="mt-8 mb-2">
+                                    <div className="flex justify-between items-end mb-3">
+                                        <span className="text-3xl font-black text-slate-900 dark:text-slate-50">
+                                            {isTracking ? fatigueMetrics.blinksPerMin : '--'} 
+                                            <span className="text-xs font-semibold text-slate-400 ml-1">/min</span>
+                                        </span>
+                                        <span className={`text-[10px] font-bold uppercase tracking-widest ${
+                                            blinkHealthPercent > 70 ? 'text-green-500' : 'text-amber-500'
+                                        }`}>
+                                            {isTracking ? `${Math.round(blinkHealthPercent)}% healthy` : 'Start tracking'}
+                                        </span>
+                                    </div>
+                                    <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full">
+                                        <div className="h-full bg-cyan-500 rounded-full relative transition-all" style={{ width: `${blinkHealthPercent}%` }}>
+                                            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white dark:bg-slate-900 border-[3px] border-cyan-500 rounded-full shadow-sm"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 hover:border-slate-200 dark:hover:border-slate-600 transition-colors shadow-sm">
+                                <div className="flex items-start justify-between mb-6">
+                                    <div>
+                                        <p className="font-bold text-slate-900 dark:text-slate-100 leading-tight mb-1 tracking-tight">Posture Quality</p>
+                                        <p className="text-[11px] text-slate-500 dark:text-slate-400">Maintain good head position</p>
+                                    </div>
+                                    <Gauge className="text-purple-500" size={18} />
+                                </div>
+                                <div className="mt-8 mb-2">
+                                    <div className="flex justify-between items-end mb-3">
+                                        <span className={`text-3xl font-black ${
+                                            isTracking && (fatigueMetrics.isSlumping || fatigueMetrics.isForwardHead) 
+                                                ? 'text-purple-500' 
+                                                : 'text-emerald-500'
+                                        }`}>
+                                            {isTracking ? (fatigueMetrics.isSlumping || fatigueMetrics.isForwardHead ? 'Poor' : 'Good') : '--'}
+                                        </span>
+                                        <span className={`text-[10px] font-bold uppercase tracking-widest ${
+                                            postureHealthPercent > 70 ? 'text-green-500' : 'text-amber-500'
+                                        }`}>
+                                            {isTracking ? `${Math.round(postureHealthPercent)}% healthy` : 'Start tracking'}
+                                        </span>
+                                    </div>
+                                    <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full">
+                                        <div className="h-full bg-purple-500 rounded-full relative transition-all" style={{ width: `${postureHealthPercent}%` }}>
+                                            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white dark:bg-slate-900 border-[3px] border-purple-500 rounded-full shadow-sm"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 hover:border-slate-200 dark:hover:border-slate-600 transition-colors shadow-sm">
+                                <div className="flex items-start justify-between mb-6">
+                                    <div>
+                                        <p className="font-bold text-slate-900 dark:text-slate-100 leading-tight mb-1 tracking-tight">Eye Health</p>
+                                        <p className="text-[11px] text-slate-500 dark:text-slate-400">Minimize eye strain</p>
+                                    </div>
+                                    <Eye className="text-amber-500" size={18} />
+                                </div>
+                                <div className="mt-8 mb-2">
+                                    <div className="flex justify-between items-end mb-3">
+                                        <span className={`text-3xl font-black ${
+                                            isTracking && fatigueMetrics.eyeFatigue ? 'text-amber-500' : 'text-emerald-500'
+                                        }`}>
+                                            {isTracking ? (fatigueMetrics.eyeFatigue ? 'Strain' : 'Healthy') : '--'}
+                                        </span>
+                                        <span className={`text-[10px] font-bold uppercase tracking-widest ${
+                                            eyeHealthPercent > 70 ? 'text-green-500' : 'text-amber-500'
+                                        }`}>
+                                            {isTracking ? `${Math.round(eyeHealthPercent)}% healthy` : 'Start tracking'}
+                                        </span>
+                                    </div>
+                                    <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full">
+                                        <div className="h-full bg-amber-500 rounded-full relative transition-all" style={{ width: `${eyeHealthPercent}%` }}>
+                                            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white dark:bg-slate-900 border-[3px] border-amber-500 rounded-full shadow-sm"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {!isTracking && (
+                            <div className="mt-6 p-4 bg-indigo-50/50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-2xl flex items-center gap-3 transition-colors">
+                                <Lightbulb className="text-indigo-500 dark:text-indigo-400" size={18} fill="currentColor" />
+                                <p className="text-[11px] text-indigo-700 dark:text-indigo-300 font-medium">Go to Dashboard and start CV tracking to see your real-time physiological health metrics.</p>
+                            </div>
+                        )}
+                    </section>
+
+                    {/* Behavioral Tracking Goals */}
+                    <section className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm transition-colors">
+                        <div className="flex items-center justify-between mb-8">
+                            <h3 className="text-xl font-bold flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-500 dark:text-blue-400 flex items-center justify-center">
+                                    <MousePointer size={20} />
+                                </div>
+                                Behavioral Tracking Goals
+                            </h3>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-full border border-slate-100 dark:border-slate-700 pb-1 transition-colors">
+                                {stats?.factors ? 'Live Data' : 'No Data'}
+                            </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Tab Switching Goal */}
+                            <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 hover:border-slate-200 dark:hover:border-slate-600 transition-colors shadow-sm">
+                                <div className="flex items-start justify-between mb-6">
+                                    <div>
+                                        <p className="font-bold text-slate-900 dark:text-slate-100 leading-tight mb-1 tracking-tight">Tab Switches</p>
+                                        <p className="text-[11px] text-slate-500 dark:text-slate-400">Target: &lt; {displaySettings.max_tab_switches}/hr</p>
+                                    </div>
+                                    <LayoutDashboard className="text-blue-500" size={18} />
+                                </div>
+                                <div className="mt-8 mb-2">
+                                    <div className="flex justify-between items-end mb-3">
+                                        <span className="text-3xl font-black text-slate-900 dark:text-slate-50">
+                                            {stats?.tab_switches ?? '--'}
+                                            <span className="text-xs font-semibold text-slate-400 ml-1">switches</span>
+                                        </span>
+                                        <span className={`text-[10px] font-bold uppercase tracking-widest ${
+                                            stats?.factors?.tabSwitching 
+                                                ? (stats.factors.tabSwitching.penalty > stats.factors.tabSwitching.maxWeight * 0.5 
+                                                    ? 'text-rose-500' 
+                                                    : 'text-green-500')
+                                                : 'text-slate-400'
+                                        }`}>
+                                            {stats?.factors?.tabSwitching 
+                                                ? `${Math.round((1 - stats.factors.tabSwitching.penalty / stats.factors.tabSwitching.maxWeight) * 100)}% on target`
+                                                : 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full">
+                                        <div 
+                                            className={`h-full rounded-full relative transition-all ${
+                                                stats?.factors?.tabSwitching
+                                                    ? (stats.factors.tabSwitching.penalty > stats.factors.tabSwitching.maxWeight * 0.5 
+                                                        ? 'bg-rose-500' 
+                                                        : 'bg-green-500')
+                                                    : 'bg-slate-300 dark:bg-slate-600'
+                                            }`}
+                                            style={{ width: `${stats?.factors?.tabSwitching ? Math.min(100, (1 - stats.factors.tabSwitching.penalty / stats.factors.tabSwitching.maxWeight) * 100) : 0}%` }}
+                                        >
+                                            <div className={`absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white dark:bg-slate-900 border-[3px] rounded-full shadow-sm ${
+                                                stats?.factors?.tabSwitching
+                                                    ? (stats.factors.tabSwitching.penalty > stats.factors.tabSwitching.maxWeight * 0.5 
+                                                        ? 'border-rose-500' 
+                                                        : 'border-green-500')
+                                                    : 'border-slate-300 dark:border-slate-600'
+                                            }`}></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Typing Fatigue Goal */}
+                            <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 hover:border-slate-200 dark:hover:border-slate-600 transition-colors shadow-sm">
+                                <div className="flex items-start justify-between mb-6">
+                                    <div>
+                                        <p className="font-bold text-slate-900 dark:text-slate-100 leading-tight mb-1 tracking-tight">Typing Fatigue</p>
+                                        <p className="text-[11px] text-slate-500 dark:text-slate-400">Maintain typing consistency</p>
+                                    </div>
+                                    <Activity className="text-purple-500" size={18} />
+                                </div>
+                                <div className="mt-8 mb-2">
+                                    <div className="flex justify-between items-end mb-3">
+                                        <span className={`text-3xl font-black ${
+                                            stats?.factors?.typingFatigue
+                                                ? (stats.factors.typingFatigue.penalty > stats.factors.typingFatigue.maxWeight * 0.6 
+                                                    ? 'text-purple-500' 
+                                                    : 'text-emerald-500')
+                                                : 'text-slate-400'
+                                        }`}>
+                                            {stats?.factors?.typingFatigue 
+                                                ? (stats.factors.typingFatigue.penalty > stats.factors.typingFatigue.maxWeight * 0.6 
+                                                    ? 'Fatigued' 
+                                                    : 'Good')
+                                                : 'N/A'}
+                                        </span>
+                                        <span className={`text-[10px] font-bold uppercase tracking-widest ${
+                                            stats?.factors?.typingFatigue
+                                                ? (stats.factors.typingFatigue.penalty > stats.factors.typingFatigue.maxWeight * 0.5 
+                                                    ? 'text-amber-500' 
+                                                    : 'text-green-500')
+                                                : 'text-slate-400'
+                                        }`}>
+                                            {stats?.factors?.typingFatigue 
+                                                ? `${Math.round((1 - stats.factors.typingFatigue.penalty / stats.factors.typingFatigue.maxWeight) * 100)}% healthy`
+                                                : 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full">
+                                        <div 
+                                            className={`h-full rounded-full relative transition-all ${
+                                                stats?.factors?.typingFatigue
+                                                    ? (stats.factors.typingFatigue.penalty > stats.factors.typingFatigue.maxWeight * 0.5 
+                                                        ? 'bg-amber-500' 
+                                                        : 'bg-emerald-500')
+                                                    : 'bg-slate-300 dark:bg-slate-600'
+                                            }`}
+                                            style={{ width: `${stats?.factors?.typingFatigue ? Math.min(100, (1 - stats.factors.typingFatigue.penalty / stats.factors.typingFatigue.maxWeight) * 100) : 0}%` }}
+                                        >
+                                            <div className={`absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white dark:bg-slate-900 border-[3px] rounded-full shadow-sm ${
+                                                stats?.factors?.typingFatigue
+                                                    ? (stats.factors.typingFatigue.penalty > stats.factors.typingFatigue.maxWeight * 0.5 
+                                                        ? 'border-amber-500' 
+                                                        : 'border-emerald-500')
+                                                    : 'border-slate-300 dark:border-slate-600'
+                                            }`}></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Mouse Activity Goal */}
+                            <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 hover:border-slate-200 dark:hover:border-slate-600 transition-colors shadow-sm">
+                                <div className="flex items-start justify-between mb-6">
+                                    <div>
+                                        <p className="font-bold text-slate-900 dark:text-slate-100 leading-tight mb-1 tracking-tight">Mouse Stability</p>
+                                        <p className="text-[11px] text-slate-500 dark:text-slate-400">Minimize erratic movements</p>
+                                    </div>
+                                    <MousePointer className="text-cyan-500" size={18} />
+                                </div>
+                                <div className="mt-8 mb-2">
+                                    <div className="flex justify-between items-end mb-3">
+                                        <span className={`text-3xl font-black ${
+                                            stats?.factors?.erraticMouse
+                                                ? (stats.factors.erraticMouse.penalty > stats.factors.erraticMouse.maxWeight * 0.6 
+                                                    ? 'text-cyan-500' 
+                                                    : 'text-emerald-500')
+                                                : 'text-slate-400'
+                                        }`}>
+                                            {stats?.factors?.erraticMouse 
+                                                ? (stats.factors.erraticMouse.penalty > stats.factors.erraticMouse.maxWeight * 0.6 
+                                                    ? 'Erratic' 
+                                                    : 'Smooth')
+                                                : 'N/A'}
+                                        </span>
+                                        <span className={`text-[10px] font-bold uppercase tracking-widest ${
+                                            stats?.factors?.erraticMouse
+                                                ? (stats.factors.erraticMouse.penalty > stats.factors.erraticMouse.maxWeight * 0.5 
+                                                    ? 'text-amber-500' 
+                                                    : 'text-green-500')
+                                                : 'text-slate-400'
+                                        }`}>
+                                            {stats?.factors?.erraticMouse 
+                                                ? `${Math.round((1 - stats.factors.erraticMouse.penalty / stats.factors.erraticMouse.maxWeight) * 100)}% stable`
+                                                : 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full">
+                                        <div 
+                                            className={`h-full rounded-full relative transition-all ${
+                                                stats?.factors?.erraticMouse
+                                                    ? (stats.factors.erraticMouse.penalty > stats.factors.erraticMouse.maxWeight * 0.5 
+                                                        ? 'bg-amber-500' 
+                                                        : 'bg-emerald-500')
+                                                    : 'bg-slate-300 dark:bg-slate-600'
+                                            }`}
+                                            style={{ width: `${stats?.factors?.erraticMouse ? Math.min(100, (1 - stats.factors.erraticMouse.penalty / stats.factors.erraticMouse.maxWeight) * 100) : 0}%` }}
+                                        >
+                                            <div className={`absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white dark:bg-slate-900 border-[3px] rounded-full shadow-sm ${
+                                                stats?.factors?.erraticMouse
+                                                    ? (stats.factors.erraticMouse.penalty > stats.factors.erraticMouse.maxWeight * 0.5 
+                                                        ? 'border-amber-500' 
+                                                        : 'border-emerald-500')
+                                                    : 'border-slate-300 dark:border-slate-600'
+                                            }`}></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Scroll Activity Goal */}
+                            <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 hover:border-slate-200 dark:hover:border-slate-600 transition-colors shadow-sm">
+                                <div className="flex items-start justify-between mb-6">
+                                    <div>
+                                        <p className="font-bold text-slate-900 dark:text-slate-100 leading-tight mb-1 tracking-tight">Scroll Pattern</p>
+                                        <p className="text-[11px] text-slate-500 dark:text-slate-400">Avoid anxious scrolling</p>
+                                    </div>
+                                    <ScrollText className="text-orange-500" size={18} />
+                                </div>
+                                <div className="mt-8 mb-2">
+                                    <div className="flex justify-between items-end mb-3">
+                                        <span className={`text-3xl font-black ${
+                                            stats?.factors?.anxiousScroll
+                                                ? (stats.factors.anxiousScroll.penalty > stats.factors.anxiousScroll.maxWeight * 0.6 
+                                                    ? 'text-orange-500' 
+                                                    : 'text-emerald-500')
+                                                : 'text-slate-400'
+                                        }`}>
+                                            {stats?.factors?.anxiousScroll 
+                                                ? (stats.factors.anxiousScroll.penalty > stats.factors.anxiousScroll.maxWeight * 0.6 
+                                                    ? 'Anxious' 
+                                                    : 'Calm')
+                                                : 'N/A'}
+                                        </span>
+                                        <span className={`text-[10px] font-bold uppercase tracking-widest ${
+                                            stats?.factors?.anxiousScroll
+                                                ? (stats.factors.anxiousScroll.penalty > stats.factors.anxiousScroll.maxWeight * 0.5 
+                                                    ? 'text-amber-500' 
+                                                    : 'text-green-500')
+                                                : 'text-slate-400'
+                                        }`}>
+                                            {stats?.factors?.anxiousScroll 
+                                                ? `${Math.round((1 - stats.factors.anxiousScroll.penalty / stats.factors.anxiousScroll.maxWeight) * 100)}% calm`
+                                                : 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full">
+                                        <div 
+                                            className={`h-full rounded-full relative transition-all ${
+                                                stats?.factors?.anxiousScroll
+                                                    ? (stats.factors.anxiousScroll.penalty > stats.factors.anxiousScroll.maxWeight * 0.5 
+                                                        ? 'bg-amber-500' 
+                                                        : 'bg-emerald-500')
+                                                    : 'bg-slate-300 dark:bg-slate-600'
+                                            }`}
+                                            style={{ width: `${stats?.factors?.anxiousScroll ? Math.min(100, (1 - stats.factors.anxiousScroll.penalty / stats.factors.anxiousScroll.maxWeight) * 100) : 0}%` }}
+                                        >
+                                            <div className={`absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white dark:bg-slate-900 border-[3px] rounded-full shadow-sm ${
+                                                stats?.factors?.anxiousScroll
+                                                    ? (stats.factors.anxiousScroll.penalty > stats.factors.anxiousScroll.maxWeight * 0.5 
+                                                        ? 'border-amber-500' 
+                                                        : 'border-emerald-500')
+                                                    : 'border-slate-300 dark:border-slate-600'
+                                            }`}></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {(!stats || !stats.factors) && (
+                            <div className="mt-6 p-4 bg-blue-50/50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-2xl flex items-center gap-3 transition-colors">
+                                <Info className="text-blue-500 dark:text-blue-400" size={18} fill="currentColor" />
+                                <p className="text-[11px] text-blue-700 dark:text-blue-300 font-medium">Extension behavioral tracking data will appear here when available. Make sure the Chrome extension is running.</p>
+                            </div>
+                        )}
                     </section>
                 </div>
 

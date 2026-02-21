@@ -10,11 +10,22 @@ import {
     TrendingDown,
     Clock,
     CheckCircle2,
-    LayoutDashboard
+    LayoutDashboard,
+    Eye,
+    Gauge,
+    Activity
 } from 'lucide-react';
-import { Activity, EventLog, Stats } from '../types';
+import { Activity as ActivityType, EventLog, Stats } from '../types';
+import { PhysiologicalMetrics } from '../hooks/useFatigueDetection';
 
-export const HistoryPage = ({ activities, events, stats }: { activities: Activity[], events: EventLog[], stats: Stats | null }) => {
+interface HistoryPageProps {
+    activities: ActivityType[];
+    events: EventLog[];
+    stats: Stats | null;
+    fatigueMetrics: PhysiologicalMetrics;
+}
+
+export const HistoryPage = ({ activities, events, stats, fatigueMetrics }: HistoryPageProps) => {
     if (!stats) return null;
 
     return (
@@ -72,6 +83,84 @@ export const HistoryPage = ({ activities, events, stats }: { activities: Activit
                     <div className="flex items-baseline gap-2">
                         <span className="text-3xl font-black text-slate-900 dark:text-slate-50">{stats.interventions}</span>
                         <span className="text-[10px] font-bold text-amber-500 bg-amber-50 dark:bg-amber-900/30 px-2 py-0.5 rounded-full ml-1">-2</span>
+                    </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between transition-colors">
+                    <div className="flex items-start justify-between mb-4">
+                        <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Physiological Score</p>
+                        <div className="w-10 h-10 rounded-full bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center text-purple-500 dark:text-purple-400">
+                            <Activity size={16} />
+                        </div>
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                        <span className={`text-3xl font-black ${
+                            fatigueMetrics.physiologicalScore > 70 ? 'text-rose-500' :
+                            fatigueMetrics.physiologicalScore > 50 ? 'text-amber-500' :
+                            'text-emerald-500'
+                        }`}>
+                            {fatigueMetrics.physiologicalScore || '--'}
+                        </span>
+                        <span className="text-sm font-bold text-slate-400">/100</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Real-time Physiological Metrics */}
+            <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 rounded-3xl p-8 border border-indigo-100 dark:border-indigo-800 shadow-sm transition-colors">
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-slate-50 mb-1">Current Physiological State</h3>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">Real-time metrics from computer vision analysis</p>
+                    </div>
+                    <span className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 px-3 py-1.5 rounded-full uppercase tracking-widest">
+                        Live Data
+                    </span>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                        <div className="flex items-center gap-2 mb-2">
+                            <Eye className="text-cyan-500" size={16} />
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Blink Rate</span>
+                        </div>
+                        <p className="text-2xl font-black text-slate-900 dark:text-slate-50">{fatigueMetrics.blinksPerMin}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">/min</p>
+                    </div>
+                    <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                        <div className="flex items-center gap-2 mb-2">
+                            <Gauge className="text-purple-500" size={16} />
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Posture</span>
+                        </div>
+                        <p className={`text-2xl font-black ${
+                            fatigueMetrics.isSlumping || fatigueMetrics.isForwardHead ? 'text-purple-500' : 'text-emerald-500'
+                        }`}>
+                            {fatigueMetrics.isSlumping || fatigueMetrics.isForwardHead ? 'Poor' : 'Good'}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{fatigueMetrics.postureScore}/100</p>
+                    </div>
+                    <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                        <div className="flex items-center gap-2 mb-2">
+                            <Eye className="text-amber-500" size={16} />
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Eye Strain</span>
+                        </div>
+                        <p className={`text-2xl font-black ${
+                            fatigueMetrics.eyeFatigue ? 'text-amber-500' : 'text-emerald-500'
+                        }`}>
+                            {fatigueMetrics.eyeFatigue ? 'High' : 'Low'}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{fatigueMetrics.earScore}/100</p>
+                    </div>
+                    <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                        <div className="flex items-center gap-2 mb-2">
+                            <Brain className="text-rose-500" size={16} />
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Stress</span>
+                        </div>
+                        <p className={`text-2xl font-black ${
+                            fatigueMetrics.stressLevel > 5 ? 'text-rose-500' : 'text-emerald-500'
+                        }`}>
+                            {fatigueMetrics.stressLevel}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">/15 limit</p>
                     </div>
                 </div>
             </div>
